@@ -31,18 +31,27 @@ export class PostResolver {
     return createPost(title, { em });
   }
 
-  @Mutation(() => Post)
+  @Mutation(() => Post, { nullable: true })
   async updatePost(
     @Arg('title') title: string,
     @Arg('id') id: number,
     @Ctx() { em }: ContextType,
-  ): Promise<Post> {
+  ): Promise<Post | null> {
     const post = await em.findOne(Post, { id: { $eq: id } });
     if (!post) {
-      return createPost(title, { em });
+      return null;
     }
     if (title) post.title = title;
     await em.persistAndFlush(post);
     return post;
+  }
+
+  @Mutation(() => Boolean)
+  async deletePost(
+    @Arg('id') id: number,
+    @Ctx() { em }: ContextType,
+  ): Promise<boolean> {
+    await em.nativeDelete(Post, { id: { $eq: id } });
+    return true;
   }
 }
