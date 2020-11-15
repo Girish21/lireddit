@@ -4,6 +4,7 @@ import connectRedis from 'connect-redis';
 import express from 'express';
 import session from 'express-session';
 import redis from 'redis';
+import cors from 'cors';
 import 'reflect-metadata';
 import { buildSchema } from 'type-graphql';
 import { __prod__ } from './constants';
@@ -17,6 +18,8 @@ const main = async () => {
   await orm.getMigrator().up();
 
   const app = express();
+
+  app.use(cors({ origin: ['http://localhost:3000'], credentials: true }));
 
   const RedisStore = connectRedis(session);
   const RedisClient = redis.createClient();
@@ -48,7 +51,7 @@ const main = async () => {
     context: ({ req, res }): ContextType => ({ em: orm.em, req, res }),
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false });
 
   app.listen(4000, () => {
     console.log('server started in port 4000');
