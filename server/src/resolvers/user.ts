@@ -7,7 +7,8 @@ import {
   InputType,
   Mutation,
   ObjectType,
-  Resolver
+  Query,
+  Resolver,
 } from 'type-graphql';
 import { User } from '../entities/User';
 import { ContextType } from '../types';
@@ -41,6 +42,14 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  me(@Ctx() { em, req }: ContextType): Promise<User | null> {
+    if (!req.session.userid) {
+      return Promise.resolve(null);
+    }
+    return em.findOne(User, { id: { $eq: req.session.userid } });
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg('credentials', () => UsernamePasswordInput)
@@ -95,7 +104,7 @@ export class UserResolver {
   async login(
     @Arg('credentials', () => UsernamePasswordInput)
     { username, password }: UsernamePasswordInput,
-    @Ctx() { em }: ContextType,
+    @Ctx() { em, req }: ContextType,
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: { $eq: username } });
     if (!user)
@@ -103,7 +112,10 @@ export class UserResolver {
         errors: [{ field: 'username', message: "username dosen't exist" }],
       };
     const passwordVerified = await argon2.verify(user.password, password);
-    if (passwordVerified) return { user };
+    if (passwordVerified) {
+      req.session.userid = user.id;
+      return { user };
+    }
     return { errors: [{ message: 'username/password incorrect' }] };
   }
 }

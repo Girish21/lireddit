@@ -2,12 +2,6 @@ import { Arg, Ctx, Int, Mutation, Query, Resolver } from 'type-graphql';
 import { Post } from '../entities/Post';
 import { ContextType } from '../types';
 
-async function createPost(title: string, { em }: ContextType): Promise<Post> {
-  const post = em.create(Post, { title });
-  await em.persistAndFlush(post);
-  return post;
-}
-
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
@@ -28,7 +22,9 @@ export class PostResolver {
     @Arg('title', () => String) title: string,
     @Ctx() { em }: ContextType,
   ): Promise<Post> {
-    return createPost(title, { em });
+    const post = em.create(Post, { title });
+    await em.persistAndFlush(post);
+    return post;
   }
 
   @Mutation(() => Post, { nullable: true })
