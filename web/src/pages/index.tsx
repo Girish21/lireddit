@@ -1,3 +1,7 @@
-const Index = () => <div>Hello world</div>;
+import { NextPage } from "next";
+
+const Index: NextPage = () => {
+  return <div>Hello world</div>;
+};
 
 export default Index;
