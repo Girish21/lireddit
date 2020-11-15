@@ -116,6 +116,8 @@ export class UserResolver {
       req.session.userid = user.id;
       return { user };
     }
-    return { errors: [{ message: 'username/password incorrect' }] };
+    return {
+      errors: [{ field: 'password', message: 'password incorrect' }],
+    };
   }
 }
