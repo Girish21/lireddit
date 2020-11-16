@@ -142,6 +142,14 @@ export type MeQuery = { __typename?: "Query" } & {
   me?: Maybe<{ __typename?: "User" } & UserDataFragment>;
 };
 
+export type PostsQueryVariables = Exact<{ [key: string]: never }>;
+
+export type PostsQuery = { __typename?: "Query" } & {
+  posts: Array<
+    { __typename?: "Post" } & Pick<Post, "id" | "createdAt" | "title">
+  >;
+};
+
 export const UserDataFragmentDoc = gql`
   fragment UserData on User {
     id
@@ -210,4 +218,19 @@ export function useMeQuery(
   options: Omit<Urql.UseQueryArgs<MeQueryVariables>, "query"> = {}
 ) {
   return Urql.useQuery<MeQuery>({ query: MeDocument, ...options });
+}
+export const PostsDocument = gql`
+  query Posts {
+    posts {
+      id
+      createdAt
+      title
+    }
+  }
+`;
+
+export function usePostsQuery(
+  options: Omit<Urql.UseQueryArgs<PostsQueryVariables>, "query"> = {}
+) {
+  return Urql.useQuery<PostsQuery>({ query: PostsDocument, ...options });
 }
