@@ -159,4 +159,49 @@ export class UserResolver {
 
     return true;
   }
+
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg('token') token: string,
+    @Arg('password') password: string,
+    @Ctx() { em, redis, req }: ContextType,
+  ): Promise<UserResponse> {
+    if (!password.length) {
+      return {
+        errors: [
+          {
+            field: 'password',
+            message: 'Please enter a password',
+          },
+        ],
+      };
+    }
+
+    const cacheKey = `${FORGOT_PASSWORD_PREFIX}${token}`;
+    const userId = await redis.get(cacheKey);
+
+    if (!userId)
+      return { errors: [{ field: 'token', message: 'Token Expired' }] };
+
+    const user = await em.findOne(User, { id: { $eq: +userId } });
+
+    if (!user)
+      return { errors: [{ field: 'token', message: 'User no longer exist' }] };
+
+    user.password = await argon2.hash(password);
+
+    try {
+      await em.persistAndFlush(user);
+      await redis.del(cacheKey);
+    } catch (err) {
+      console.log(err);
+      return {
+        errors: [{ field: 'token', message: 'Password update failed!' }],
+      };
+    }
+
+    req.session.userid = user.id;
+
+    return { user };
+  }
 }
