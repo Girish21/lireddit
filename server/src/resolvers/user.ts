@@ -1,5 +1,6 @@
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import * as argon2 from 'argon2';
+import { COOKIE_NAME } from '../constants';
 import {
   Arg,
   Ctx,
@@ -119,5 +120,20 @@ export class UserResolver {
     return {
       errors: [{ field: 'password', message: 'password incorrect' }],
     };
+  }
+
+  @Mutation(() => Boolean)
+  async logout(@Ctx() { req, res }: ContextType) {
+    return new Promise((resolve) =>
+      req.session.destroy((err) => {
+        res.clearCookie(COOKIE_NAME);
+        if (err) {
+          console.log(err);
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      }),
+    );
   }
 }
