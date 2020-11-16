@@ -12,6 +12,7 @@
     "@chakra-ui/core": "^1.0.0-rc.8",
     "@chakra-ui/icons": "^1.0.0-rc.8",
     "@emotion/styled": "^10.0.27",
+    "@urql/exchange-graphcache": "^3.1.11",
     "emotion-theming": "^10.0.27",
     "formik": "^2.2.5",
     "framer-motion": "^2.9.4",
