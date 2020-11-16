@@ -89,6 +89,11 @@ export type UsernamePasswordInput = {
   password: Scalars["String"];
 };
 
+export type UserDataFragment = { __typename?: "User" } & Pick<
+  User,
+  "id" | "username"
+>;
+
 export type LoginMutationVariables = Exact<{
   username: Scalars["String"];
   password: Scalars["String"];
@@ -102,7 +107,7 @@ export type LoginMutation = { __typename?: "Mutation" } & {
           { __typename?: "FieldError" } & Pick<FieldError, "field" | "message">
         >
       >;
-      user?: Maybe<{ __typename?: "User" } & Pick<User, "id" | "username">>;
+      user?: Maybe<{ __typename?: "User" } & UserDataFragment>;
     }
   >;
 };
@@ -119,16 +124,22 @@ export type RegisterMutation = { __typename?: "Mutation" } & {
         { __typename?: "FieldError" } & Pick<FieldError, "field" | "message">
       >
     >;
-    user?: Maybe<{ __typename?: "User" } & Pick<User, "id" | "username">>;
+    user?: Maybe<{ __typename?: "User" } & UserDataFragment>;
   };
 };
 
 export type MeQueryVariables = Exact<{ [key: string]: never }>;
 
 export type MeQuery = { __typename?: "Query" } & {
-  me?: Maybe<{ __typename?: "User" } & Pick<User, "username">>;
+  me?: Maybe<{ __typename?: "User" } & UserDataFragment>;
 };
 
+export const UserDataFragmentDoc = gql`
+  fragment UserData on User {
+    id
+    username
+  }
+`;
 export const LoginDocument = gql`
   mutation Login($username: String!, $password: String!) {
     login(credentials: { username: $username, password: $password }) {
@@ -137,11 +148,11 @@ export const LoginDocument = gql`
         message
       }
       user {
-        id
-        username
+        ...UserData
       }
     }
   }
+  ${UserDataFragmentDoc}
 `;
 
 export function useLoginMutation() {
@@ -155,11 +166,11 @@ export const RegisterDocument = gql`
         message
       }
       user {
-        id
-        username
+        ...UserData
       }
     }
   }
+  ${UserDataFragmentDoc}
 `;
 
 export function useRegisterMutation() {
@@ -170,9 +181,10 @@ export function useRegisterMutation() {
 export const MeDocument = gql`
   query Me {
     me {
-      username
+      ...UserData
     }
   }
+  ${UserDataFragmentDoc}
 `;
 
 export function useMeQuery(
