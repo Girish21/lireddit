@@ -4,12 +4,17 @@ import { FormField } from "./FormField";
 
 type UserFormProps = {
   isSubmitting: boolean;
+  register?: boolean;
 };
 
-export const UserForm: React.FC<UserFormProps> = function ({ isSubmitting }) {
+export const UserForm: React.FC<UserFormProps> = function ({
+  isSubmitting,
+  register = false,
+}) {
   return (
     <>
       <FormField label="Username" name="username" placeholder="Username" />
+      {register && <FormField label="Email" name="email" placeholder="Email" />}
       <FormField
         label="Password"
         name="password"

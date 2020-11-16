@@ -16,7 +16,7 @@ const register: React.FC<RegisterProps> = ({}) => {
   return (
     <Wrapper variant="small">
       <Formik
-        initialValues={{ username: "", password: "" }}
+        initialValues={{ username: "", email: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
           const response = await register(values);
           if (response.data?.register.errors) {
@@ -28,7 +28,7 @@ const register: React.FC<RegisterProps> = ({}) => {
       >
         {({ isSubmitting }) => (
           <Form autoComplete="off">
-            <UserForm isSubmitting={isSubmitting} />
+            <UserForm isSubmitting={isSubmitting} register />
           </Form>
         )}
       </Formik>

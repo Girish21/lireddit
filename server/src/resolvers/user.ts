@@ -1,6 +1,6 @@
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import * as argon2 from 'argon2';
-import { COOKIE_NAME } from '../constants';
+import { sendEmail } from '../util/sendEmail';
 import {
   Arg,
   Ctx,
@@ -11,11 +11,15 @@ import {
   Query,
   Resolver,
 } from 'type-graphql';
+import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from '../constants';
 import { User } from '../entities/User';
 import { ContextType } from '../types';
+import { RegisterInput } from '../types/RegisterInput';
+import { validateRegister } from '../util/validateRegister';
+import { v4 as uuid } from 'uuid';
 
 @InputType()
-class UsernamePasswordInput {
+class LoginInput {
   @Field()
   username: string;
 
@@ -53,43 +57,32 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async register(
-    @Arg('credentials', () => UsernamePasswordInput)
-    { username, password }: UsernamePasswordInput,
+    @Arg('credentials', () => RegisterInput)
+    { username, password, email }: RegisterInput,
     @Ctx() { em }: ContextType,
   ): Promise<UserResponse> {
-    if (!username.length) {
-      return {
-        errors: [
-          {
-            field: 'username',
-            message: 'Please enter a username',
-          },
-        ],
-      };
-    }
-    if (!password.length) {
-      return {
-        errors: [
-          {
-            field: 'password',
-            message: 'Please enter a password',
-          },
-        ],
-      };
-    }
+    const errors = validateRegister({ username, password, email });
+    if (errors) return { errors };
 
     const hashedPassword = await argon2.hash(password);
-    const user = em.create(User, { username, password: hashedPassword });
+    const user = em.create(User, { username, email, password: hashedPassword });
 
     try {
       await em.persistAndFlush(user);
     } catch (err) {
       if (err instanceof UniqueConstraintViolationException) {
+        const extract = /Key \((.*)\)=(?:.*)/i.exec((err as any).detail);
+        let key = 'username';
+        if (extract && extract.length > 1) {
+          key = extract[1];
+        }
         return {
           errors: [
             {
-              field: 'username',
-              message: `username ${username} already exist`,
+              field: key,
+              message: `${key} ${
+                key === 'username' ? username : email
+              } already exist`,
             },
           ],
         };
@@ -103,11 +96,16 @@ export class UserResolver {
 
   @Mutation(() => UserResponse, { nullable: true })
   async login(
-    @Arg('credentials', () => UsernamePasswordInput)
-    { username, password }: UsernamePasswordInput,
+    @Arg('credentials', () => LoginInput)
+    { username, password }: LoginInput,
     @Ctx() { em, req }: ContextType,
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: { $eq: username } });
+    const user = await em.findOne(
+      User,
+      username.includes('@')
+        ? { email: { $eq: username } }
+        : { username: { $eq: username } },
+    );
     if (!user)
       return {
         errors: [{ field: 'username', message: "username dosen't exist" }],
@@ -135,5 +133,30 @@ export class UserResolver {
         resolve(true);
       }),
     );
+  }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg('email') email: string,
+    @Ctx() { em, redis }: ContextType,
+  ) {
+    const user = await em.findOne(User, { email: { $eq: email } });
+    if (!user) return true;
+
+    const token = uuid();
+
+    await redis.set(
+      `${FORGOT_PASSWORD_PREFIX}${token}`,
+      user.id,
+      'ex',
+      1000 * 60 * 60,
+    );
+
+    await sendEmail(
+      email,
+      `<a href='http://localhost:3000/chage-password/${token}'>Change Password</a>`,
+    );
+
+    return true;
   }
 }
