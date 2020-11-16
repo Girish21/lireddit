@@ -4,6 +4,7 @@ import { createClient, dedupExchange, fetchExchange, Provider } from "urql";
 import { NavBar } from "../components/NavBar";
 import {
   LoginMutation,
+  LogoutMutation,
   MeDocument,
   MeQuery,
   RegisterMutation,
@@ -59,6 +60,16 @@ const client = createClient({
                   };
                 }
               }
+            );
+          },
+          logout: (_result, _, cache, __) => {
+            betterUpdateQuery<LogoutMutation, MeQuery>(
+              cache,
+              { query: MeDocument },
+              _result,
+              (___, ____) => ({
+                me: null,
+              })
             );
           },
         },
